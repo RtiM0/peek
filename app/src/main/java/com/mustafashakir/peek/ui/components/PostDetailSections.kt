@@ -81,8 +81,8 @@ fun AuthorByline(
     onCopyMedia: suspend () -> Unit,
     onDownload: suspend () -> Unit,
     onShare: suspend () -> Unit,
-    canCopyMedia: Boolean = true,
     modifier: Modifier = Modifier,
+    canCopyMedia: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(modifier = modifier.fillMaxWidth()) {

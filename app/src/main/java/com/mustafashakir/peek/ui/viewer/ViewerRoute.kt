@@ -5,17 +5,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mustafashakir.peek.domain.usecase.DownloadMediaUseCase
+import com.mustafashakir.peek.domain.usecase.PrepareMediaForSharingUseCase
 import com.mustafashakir.peek.ui.actions.rememberPostActionCallbacks
 
 @Composable
 fun ViewerRoute(
     viewModel: ViewerViewModel,
+    prepareMediaForSharing: PrepareMediaForSharingUseCase,
+    downloadMedia: DownloadMediaUseCase,
     onBack: () -> Unit,
     onOpenMedia: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewerUiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val callbacks = rememberPostActionCallbacks()
+    val callbacks = rememberPostActionCallbacks(prepareMediaForSharing, downloadMedia)
 
     ViewerView(
         uiState = viewerUiState,

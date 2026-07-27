@@ -16,9 +16,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import com.mustafashakir.peek.R
+import com.mustafashakir.peek.domain.model.RemoteMedia
+import com.mustafashakir.peek.domain.model.RemoteMediaKind
+import com.mustafashakir.peek.domain.usecase.DownloadMediaUseCase
+import com.mustafashakir.peek.domain.usecase.PrepareMediaForSharingUseCase
+import com.mustafashakir.peek.ui.model.UiImage
 import com.mustafashakir.peek.ui.model.ViewerMediaItemUiModel
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CancellableContinuation
@@ -32,23 +38,42 @@ data class PostActionCallbacks(
 )
 
 @Composable
-fun rememberPostActionCallbacks(): PostActionCallbacks {
+fun rememberPostActionCallbacks(
+    prepareMediaForSharing: PrepareMediaForSharingUseCase,
+    downloadMedia: DownloadMediaUseCase,
+): PostActionCallbacks {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val clipboard = LocalClipboard.current
     val linkCopied = stringResource(R.string.link_copied)
     val mediaCopied = stringResource(R.string.media_copied)
     val actionFailed = stringResource(R.string.action_failed)
-    val mediaSavedOne = stringResource(R.string.media_saved)
-    val mediaSavedMany = stringResource(R.string.media_saved_multiple)
 
-    fun savedMessage(count: Int) = if (count == 1) mediaSavedOne else mediaSavedMany.format(count)
     fun toast(message: String) = Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
-    var pendingPermissionContinuation by remember { mutableStateOf<CancellableContinuation<Boolean>?>(null) }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        pendingPermissionContinuation?.let { continuation -> if (continuation.isActive) continuation.resume(granted) }
+    var pendingPermissionContinuation by remember {
+        mutableStateOf<CancellableContinuation<Boolean>?>(null)
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        pendingPermissionContinuation
+            ?.takeIf(CancellableContinuation<Boolean>::isActive)
+            ?.resume(granted)
         pendingPermissionContinuation = null
     }
+
+    suspend fun requestLegacyWritePermission(): Boolean =
+        suspendCancellableCoroutine { continuation ->
+            pendingPermissionContinuation?.cancel()
+            pendingPermissionContinuation = continuation
+            continuation.invokeOnCancellation {
+                if (pendingPermissionContinuation === continuation) {
+                    pendingPermissionContinuation = null
+                }
+            }
+            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
 
     return PostActionCallbacks(
         onCopyLink = { url ->
@@ -56,39 +81,66 @@ fun rememberPostActionCallbacks(): PostActionCallbacks {
             toast(linkCopied)
         },
         onCopyMedia = { item ->
-            val uri = mediaClipUri(context, item)
-            if (uri != null) {
-                clipboard.setClipEntry(ClipEntry(ClipData.newUri(context.contentResolver, "Media", uri)))
+            val media = item.toRemoteMedia()
+            val prepared = media
+                ?.let { prepareMediaForSharing(listOf(it)).getOrNull()?.singleOrNull() }
+            val clipData = prepared?.let { mediaClipData(context, it) }
+            if (clipData != null) {
+                clipboard.setClipEntry(ClipEntry(clipData))
                 toast(mediaCopied)
             } else {
                 toast(actionFailed)
             }
         },
         onDownload = { items ->
-            val needsLegacyPermission = Build.VERSION.SDK_INT in Build.VERSION_CODES.O..Build.VERSION_CODES.P &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-            val granted = if (needsLegacyPermission) {
-                suspendCancellableCoroutine { continuation ->
-                    pendingPermissionContinuation = continuation
-                    permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                }
-            } else {
-                true
-            }
-            if (granted) {
-                val count = downloadMediaItems(context, items)
-                toast(if (count > 0) savedMessage(count) else actionFailed)
-            } else {
+            val media = items.toRemoteMedia()
+            if (media == null) {
                 toast(actionFailed)
+            } else {
+                val needsLegacyPermission =
+                    Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        ) != PackageManager.PERMISSION_GRANTED
+                val granted = !needsLegacyPermission || requestLegacyWritePermission()
+                if (granted) {
+                    val count = downloadMedia(media)
+                    val message = if (count > 0) {
+                        resources.getQuantityString(
+                            R.plurals.media_saved_count,
+                            count,
+                            count,
+                        )
+                    } else {
+                        actionFailed
+                    }
+                    toast(message)
+                } else {
+                    toast(actionFailed)
+                }
             }
         },
         onShare = { items ->
-            val intent = shareMediaIntent(context, items)
-            if (intent != null) {
+            val media = items.toRemoteMedia()
+            val prepared = media?.let { prepareMediaForSharing(it).getOrNull() }
+            val intent = prepared?.let { shareMediaIntent(context, it) }
+            val launched = intent != null && runCatching {
                 context.startActivity(Intent.createChooser(intent, null))
-            } else {
-                toast(actionFailed)
-            }
+            }.isSuccess
+            if (!launched) toast(actionFailed)
         },
     )
 }
+
+private fun ViewerMediaItemUiModel.toRemoteMedia(): RemoteMedia? {
+    val url = videoUrl ?: (image as? UiImage.Url)?.value ?: return null
+    return RemoteMedia(
+        id = id,
+        url = url,
+        kind = if (videoUrl == null) RemoteMediaKind.Image else RemoteMediaKind.Video,
+    )
+}
+
+private fun List<ViewerMediaItemUiModel>.toRemoteMedia(): List<RemoteMedia>? =
+    map { it.toRemoteMedia() ?: return null }

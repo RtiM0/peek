@@ -80,6 +80,8 @@ fun PeekNavigation(container: AppContainer, viewIntentUrl: MutableState<String?>
                 )
                 ViewerRoute(
                     viewModel = viewerViewModel,
+                    prepareMediaForSharing = container.prepareMediaForSharing,
+                    downloadMedia = container.downloadMedia,
                     onBack = ::regularPop,
                     onOpenMedia = { mediaIndex -> backStack.add(PlayerKey(key.url, mediaIndex)) },
                     modifier = Modifier.safeDrawingPadding(),
@@ -91,6 +93,8 @@ fun PeekNavigation(container: AppContainer, viewIntentUrl: MutableState<String?>
                 )
                 PlayerRoute(
                     viewModel = playerViewModel,
+                    prepareMediaForSharing = container.prepareMediaForSharing,
+                    downloadMedia = container.downloadMedia,
                     initialMediaIndex = key.mediaIndex,
                     onBack = ::regularPop,
                 )

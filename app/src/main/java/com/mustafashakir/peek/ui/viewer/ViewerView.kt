@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -85,13 +86,13 @@ fun ViewerView(
     uiState: ViewerUiState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
-    onLoadMoreComments: () -> Unit = {},
     onOpenMedia: (Int) -> Unit,
-    onCopyLink: suspend (String) -> Unit,
-    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
-    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
-    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
     modifier: Modifier = Modifier,
+    onLoadMoreComments: () -> Unit = {},
+    onCopyLink: suspend (String) -> Unit = {},
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit = {},
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit = {},
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit = {},
 ) {
     Box(modifier = modifier.fillMaxSize().background(PeekGround), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -133,18 +134,23 @@ private fun ColumnScope.ViewerContent(
     ViewerHeader(post.isVideo, onBack, onRefresh)
     val scrollState = rememberScrollState()
     val items = post.mediaItemsOrPrimary()
+    val pagerState = rememberPagerState(
+        initialPage = post.initialMediaIndex.coerceIn(0, items.lastIndex),
+        pageCount = items::size,
+    )
+    val currentItem = items[pagerState.currentPage]
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState).padding(horizontal = 14.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        MediaCanvas(post, onOpenMedia)
+        MediaCanvas(post, items, pagerState, onOpenMedia)
         AuthorByline(
             post = post,
             onCopyLink = { onCopyLink(post.sourceUrl) },
-            onCopyMedia = { onCopyMedia(items.first()) },
+            onCopyMedia = { onCopyMedia(currentItem) },
             onDownload = { onDownload(items) },
             onShare = { onShare(items) },
-            canCopyMedia = items.first().videoUrl == null,
+            canCopyMedia = currentItem.videoUrl == null,
         )
         CaptionText(post)
         CommentsSection(
@@ -192,12 +198,12 @@ private fun ViewerHeader(isVideo: Boolean, onBack: () -> Unit, onRefresh: () -> 
 }
 
 @Composable
-private fun MediaCanvas(post: ViewerPostUiModel, onOpenMedia: (Int) -> Unit) {
-    val items = post.mediaItemsOrPrimary()
-    val pagerState = rememberPagerState(
-        initialPage = post.initialMediaIndex.coerceIn(0, items.lastIndex),
-        pageCount = items::size,
-    )
+private fun MediaCanvas(
+    post: ViewerPostUiModel,
+    items: List<ViewerMediaItemUiModel>,
+    pagerState: PagerState,
+    onOpenMedia: (Int) -> Unit,
+) {
     val coroutineScope = rememberCoroutineScope()
     val mediaHeight = if (items.any { it.videoUrl != null }) 288.dp else 244.dp
     Box(

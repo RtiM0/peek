@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import com.mustafashakir.peek.ui.home.HomeView
 import com.mustafashakir.peek.ui.model.ViewerUiState
 import com.mustafashakir.peek.ui.player.PlayerView
@@ -92,6 +93,32 @@ class PureViewTest {
 
         composeRule.onNodeWithContentDescription("Kyoto photo").performClick()
         assertEquals(1, openedIndex)
+    }
+
+    @Test
+    fun viewerCopiesTheSelectedCarouselItem() {
+        var copiedMediaId: String? = null
+        composeRule.setContent {
+            PeekTheme {
+                ViewerView(
+                    uiState = PeekPreviewFixtures.carousel,
+                    onBack = {},
+                    onRefresh = {},
+                    onOpenMedia = {},
+                    onCopyMedia = { copiedMediaId = it.id },
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Kyoto photo").performTouchInput {
+            swipeRight()
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithContentDescription("Media options").performClick()
+        composeRule.onNodeWithText("Copy media").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals("carousel-one", copiedMediaId)
     }
 
     @Test

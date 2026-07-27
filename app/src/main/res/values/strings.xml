@@ -44,7 +44,9 @@
     <string name="share">Share</string>
     <string name="link_copied">Link copied</string>
     <string name="media_copied">Copied to clipboard</string>
-    <string name="media_saved">Saved to Downloads</string>
-    <string name="media_saved_multiple">Saved %1$d items</string>
     <string name="action_failed">Something went wrong. Try again.</string>
+    <plurals name="media_saved_count">
+        <item quantity="one">Saved to Downloads</item>
+        <item quantity="other">Saved %1$d items</item>
+    </plurals>
 </resources>

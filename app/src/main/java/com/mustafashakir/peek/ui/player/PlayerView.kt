@@ -98,12 +98,12 @@ fun PlayerView(
     initialMediaIndex: Int,
     onBack: () -> Unit,
     onMore: () -> Unit,
-    onLoadMoreComments: () -> Unit = {},
-    onCopyLink: suspend (String) -> Unit,
-    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
-    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
-    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
     modifier: Modifier = Modifier,
+    onLoadMoreComments: () -> Unit = {},
+    onCopyLink: suspend (String) -> Unit = {},
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit = {},
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit = {},
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit = {},
 ) {
     val view = LocalView.current
     DisposableEffect(view) {

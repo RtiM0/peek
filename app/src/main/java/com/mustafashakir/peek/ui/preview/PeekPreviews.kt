@@ -15,23 +15,23 @@ fun HomePreview() {
 @Preview(name = "Post 390×844", widthDp = 390, heightDp = 844, showBackground = true)
 @Composable
 fun PostPreview() {
-    PeekTheme { ViewerView(PeekPreviewFixtures.post, onBack = {}, onRefresh = {}, onOpenMedia = {}) }
+    PeekTheme { ViewerView(PeekPreviewFixtures.post, onBack = {}, onRefresh = {}, onOpenMedia = {}, onCopyLink = {}, onCopyMedia = {}, onDownload = {}, onShare = {}) }
 }
 
 @Preview(name = "Video 390×844", widthDp = 390, heightDp = 844, showBackground = true)
 @Composable
 fun VideoPreview() {
-    PeekTheme { ViewerView(PeekPreviewFixtures.video, onBack = {}, onRefresh = {}, onOpenMedia = {}) }
+    PeekTheme { ViewerView(PeekPreviewFixtures.video, onBack = {}, onRefresh = {}, onOpenMedia = {}, onCopyLink = {}, onCopyMedia = {}, onDownload = {}, onShare = {}) }
 }
 
 @Preview(name = "Loading 390×844", widthDp = 390, heightDp = 844, showBackground = true)
 @Composable
 fun LoadingPreview() {
-    PeekTheme { ViewerView(PeekPreviewFixtures.loading, onBack = {}, onRefresh = {}, onOpenMedia = {}) }
+    PeekTheme { ViewerView(PeekPreviewFixtures.loading, onBack = {}, onRefresh = {}, onOpenMedia = {}, onCopyLink = {}, onCopyMedia = {}, onDownload = {}, onShare = {}) }
 }
 
 @Preview(name = "Unsupported link 390×844", widthDp = 390, heightDp = 844, showBackground = true)
 @Composable
 fun UnsupportedLinkPreview() {
-    PeekTheme { ViewerView(PeekPreviewFixtures.unavailable, onBack = {}, onRefresh = {}, onOpenMedia = {}) }
+    PeekTheme { ViewerView(PeekPreviewFixtures.unavailable, onBack = {}, onRefresh = {}, onOpenMedia = {}, onCopyLink = {}, onCopyMedia = {}, onDownload = {}, onShare = {}) }
 }

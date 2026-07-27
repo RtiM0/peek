@@ -65,6 +65,7 @@ import com.mustafashakir.peek.ui.components.PeekLockup
 import com.mustafashakir.peek.ui.model.ViewerPostUiModel
 import com.mustafashakir.peek.ui.model.ViewerUiState
 import com.mustafashakir.peek.ui.model.ViewerMediaItemUiModel
+import com.mustafashakir.peek.ui.model.mediaItemsOrPrimary
 import com.mustafashakir.peek.ui.theme.Geist
 import com.mustafashakir.peek.ui.theme.GeistMono
 import com.mustafashakir.peek.ui.theme.Inter
@@ -86,6 +87,10 @@ fun ViewerView(
     onRefresh: () -> Unit,
     onLoadMoreComments: () -> Unit = {},
     onOpenMedia: (Int) -> Unit,
+    onCopyLink: suspend (String) -> Unit,
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize().background(PeekGround), contentAlignment = Alignment.TopCenter) {
@@ -102,6 +107,10 @@ fun ViewerView(
                     onRefresh = onRefresh,
                     onLoadMoreComments = onLoadMoreComments,
                     onOpenMedia = onOpenMedia,
+                    onCopyLink = onCopyLink,
+                    onCopyMedia = onCopyMedia,
+                    onDownload = onDownload,
+                    onShare = onShare,
                 )
             }
         }
@@ -116,15 +125,27 @@ private fun ColumnScope.ViewerContent(
     onRefresh: () -> Unit,
     onLoadMoreComments: () -> Unit,
     onOpenMedia: (Int) -> Unit,
+    onCopyLink: suspend (String) -> Unit,
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
 ) {
     ViewerHeader(post.isVideo, onBack, onRefresh)
     val scrollState = rememberScrollState()
+    val items = post.mediaItemsOrPrimary()
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState).padding(horizontal = 14.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         MediaCanvas(post, onOpenMedia)
-        AuthorByline(post)
+        AuthorByline(
+            post = post,
+            onCopyLink = { onCopyLink(post.sourceUrl) },
+            onCopyMedia = { onCopyMedia(items.first()) },
+            onDownload = { onDownload(items) },
+            onShare = { onShare(items) },
+            canCopyMedia = items.first().videoUrl == null,
+        )
         CaptionText(post)
         CommentsSection(
             post = post,
@@ -172,16 +193,7 @@ private fun ViewerHeader(isVideo: Boolean, onBack: () -> Unit, onRefresh: () -> 
 
 @Composable
 private fun MediaCanvas(post: ViewerPostUiModel, onOpenMedia: (Int) -> Unit) {
-    val items = post.mediaItems.ifEmpty {
-        listOf(
-            ViewerMediaItemUiModel(
-                id = "primary",
-                image = post.media,
-                contentDescription = post.mediaDescription,
-                videoUrl = post.videoUrl,
-            ),
-        )
-    }
+    val items = post.mediaItemsOrPrimary()
     val pagerState = rememberPagerState(
         initialPage = post.initialMediaIndex.coerceIn(0, items.lastIndex),
         pageCount = items::size,

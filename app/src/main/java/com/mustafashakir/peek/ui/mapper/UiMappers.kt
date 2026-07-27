@@ -140,6 +140,7 @@ class ViewerUiMapper(private val imageMapper: UiImageMapper) {
             canLoadMoreComments = (sourceMetadata as? InstagramMetadata)?.commentsEndCursor != null,
             mediaItems = mediaItems,
             initialMediaIndex = requestedMediaIndex(content.url, mediaItems.size),
+            sourceUrl = content.url,
         )
     }
 

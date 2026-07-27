@@ -85,6 +85,7 @@ import com.mustafashakir.peek.ui.components.PeekImage
 import com.mustafashakir.peek.ui.model.ViewerMediaItemUiModel
 import com.mustafashakir.peek.ui.model.ViewerPostUiModel
 import com.mustafashakir.peek.ui.model.ViewerUiState
+import com.mustafashakir.peek.ui.model.mediaItemsOrPrimary
 import com.mustafashakir.peek.ui.theme.GeistMono
 import com.mustafashakir.peek.ui.theme.PeekGround
 import java.util.Locale
@@ -98,6 +99,10 @@ fun PlayerView(
     onBack: () -> Unit,
     onMore: () -> Unit,
     onLoadMoreComments: () -> Unit = {},
+    onCopyLink: suspend (String) -> Unit,
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -128,6 +133,10 @@ fun PlayerView(
                 onBack = onBack,
                 onMore = onMore,
                 onLoadMoreComments = onLoadMoreComments,
+                onCopyLink = onCopyLink,
+                onCopyMedia = onCopyMedia,
+                onDownload = onDownload,
+                onShare = onShare,
             )
         }
     }
@@ -193,17 +202,12 @@ private fun MediaContent(
     onBack: () -> Unit,
     onMore: () -> Unit,
     onLoadMoreComments: () -> Unit,
+    onCopyLink: suspend (String) -> Unit,
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
 ) {
-    val items = post.mediaItems.ifEmpty {
-        listOf(
-            ViewerMediaItemUiModel(
-                id = "primary",
-                image = post.media,
-                contentDescription = post.mediaDescription,
-                videoUrl = post.videoUrl,
-            ),
-        )
-    }
+    val items = post.mediaItemsOrPrimary()
     val pagerState = rememberPagerState(
         initialPage = initialMediaIndex.coerceIn(0, items.lastIndex),
         pageCount = items::size,
@@ -295,8 +299,13 @@ private fun MediaContent(
         sheetContent = {
             PostDetailsSheet(
                 post = post,
+                currentItem = currentItem,
                 isLoadingMoreComments = isLoadingMoreComments,
                 onLoadMoreComments = onLoadMoreComments,
+                onCopyLink = onCopyLink,
+                onCopyMedia = onCopyMedia,
+                onDownload = onDownload,
+                onShare = onShare,
             )
         },
     ) {
@@ -496,8 +505,13 @@ private fun PhotoMediaBar(page: Int, pageCount: Int) {
 @Composable
 private fun PostDetailsSheet(
     post: ViewerPostUiModel,
+    currentItem: ViewerMediaItemUiModel,
     isLoadingMoreComments: Boolean,
     onLoadMoreComments: () -> Unit,
+    onCopyLink: suspend (String) -> Unit,
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
 ) {
     val scrollState = rememberScrollState()
     Column(
@@ -508,7 +522,14 @@ private fun PostDetailsSheet(
             .padding(horizontal = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        AuthorByline(post)
+        AuthorByline(
+            post = post,
+            onCopyLink = { onCopyLink(post.sourceUrl) },
+            onCopyMedia = { onCopyMedia(currentItem) },
+            onDownload = { onDownload(listOf(currentItem)) },
+            onShare = { onShare(listOf(currentItem)) },
+            canCopyMedia = currentItem.videoUrl == null,
+        )
         CaptionText(post)
         CommentsSection(
             post = post,

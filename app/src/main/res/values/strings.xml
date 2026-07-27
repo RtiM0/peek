@@ -37,4 +37,14 @@
     <string name="fetching_post_label">FETCHING POST</string>
     <string name="loading_hint">This usually takes a few seconds</string>
     <string name="cancel">Cancel</string>
+    <string name="media_options">Media options</string>
+    <string name="copy_link">Copy link</string>
+    <string name="copy_media">Copy media</string>
+    <string name="download">Download</string>
+    <string name="share">Share</string>
+    <string name="link_copied">Link copied</string>
+    <string name="media_copied">Copied to clipboard</string>
+    <string name="media_saved">Saved to Downloads</string>
+    <string name="media_saved_multiple">Saved %1$d items</string>
+    <string name="action_failed">Something went wrong. Try again.</string>
 </resources>

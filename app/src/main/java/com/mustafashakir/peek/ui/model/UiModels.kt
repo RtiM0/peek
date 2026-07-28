@@ -65,6 +65,7 @@ data class ViewerPostUiModel(
     val canLoadMoreComments: Boolean = false,
     val mediaItems: List<ViewerMediaItemUiModel> = emptyList(),
     val initialMediaIndex: Int = 0,
+    val sourceUrl: String = "",
 )
 
 @Immutable
@@ -74,6 +75,18 @@ data class ViewerMediaItemUiModel(
     val contentDescription: String,
     val videoUrl: String?,
 )
+
+fun ViewerPostUiModel.mediaItemsOrPrimary(): List<ViewerMediaItemUiModel> =
+    mediaItems.ifEmpty {
+        listOf(
+            ViewerMediaItemUiModel(
+                id = "primary",
+                image = media,
+                contentDescription = mediaDescription,
+                videoUrl = videoUrl,
+            ),
+        )
+    }
 
 @Immutable
 data class CommentUiModel(

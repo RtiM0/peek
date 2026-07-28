@@ -9,6 +9,7 @@ import com.mustafashakir.peek.data.cache.LinkContentCacheStore
 import com.mustafashakir.peek.data.instagram.AndroidInstagramPageLoader
 import com.mustafashakir.peek.data.instagram.InstagramDirectPageLoader
 import com.mustafashakir.peek.data.instagram.InstagramLinkContentRepository
+import com.mustafashakir.peek.data.media.AndroidMediaRepository
 import com.mustafashakir.peek.data.recent.DataStoreRecentLinksRepository
 import com.mustafashakir.peek.data.recent.RecentLinksDocument
 import com.mustafashakir.peek.data.recent.RecentLinksSerializer
@@ -19,6 +20,8 @@ import com.mustafashakir.peek.domain.usecase.ObserveRecentContentUseCase
 import com.mustafashakir.peek.domain.usecase.OpenLinkUseCase
 import com.mustafashakir.peek.domain.usecase.RefreshLinkUseCase
 import com.mustafashakir.peek.domain.usecase.LoadMoreCommentsUseCase
+import com.mustafashakir.peek.domain.usecase.DownloadMediaUseCase
+import com.mustafashakir.peek.domain.usecase.PrepareMediaForSharingUseCase
 import com.mustafashakir.peek.ui.mapper.HomeUiMapper
 import com.mustafashakir.peek.ui.mapper.UiImageMapper
 import com.mustafashakir.peek.ui.mapper.ViewerUiMapper
@@ -32,6 +35,8 @@ interface AppContainer {
     val openLink: OpenLinkUseCase
     val refreshLink: RefreshLinkUseCase
     val loadMoreComments: LoadMoreCommentsUseCase
+    val prepareMediaForSharing: PrepareMediaForSharingUseCase
+    val downloadMedia: DownloadMediaUseCase
     val homeUiMapper: HomeUiMapper
     val viewerUiMapper: ViewerUiMapper
 }
@@ -63,6 +68,7 @@ class DefaultAppContainer(
         produceFile = { File(context.filesDir, "recent_links.json") },
     )
     private val recentLinksRepository = DataStoreRecentLinksRepository(recentLinksDataStore, clock)
+    private val mediaRepository = AndroidMediaRepository(context)
     private val imageMapper = UiImageMapper()
 
     override val observeRecentContent = ObserveRecentContentUseCase(
@@ -78,6 +84,8 @@ class DefaultAppContainer(
         recentLinksRepository = recentLinksRepository,
     )
     override val loadMoreComments = LoadMoreCommentsUseCase(contentRepository)
+    override val prepareMediaForSharing = PrepareMediaForSharingUseCase(mediaRepository)
+    override val downloadMedia = DownloadMediaUseCase(mediaRepository)
     override val homeUiMapper = HomeUiMapper(imageMapper, clock)
     override val viewerUiMapper = ViewerUiMapper(imageMapper)
 

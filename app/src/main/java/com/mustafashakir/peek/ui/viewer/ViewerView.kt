@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -65,6 +66,7 @@ import com.mustafashakir.peek.ui.components.PeekLockup
 import com.mustafashakir.peek.ui.model.ViewerPostUiModel
 import com.mustafashakir.peek.ui.model.ViewerUiState
 import com.mustafashakir.peek.ui.model.ViewerMediaItemUiModel
+import com.mustafashakir.peek.ui.model.mediaItemsOrPrimary
 import com.mustafashakir.peek.ui.theme.Geist
 import com.mustafashakir.peek.ui.theme.GeistMono
 import com.mustafashakir.peek.ui.theme.Inter
@@ -84,9 +86,13 @@ fun ViewerView(
     uiState: ViewerUiState,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
-    onLoadMoreComments: () -> Unit = {},
     onOpenMedia: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    onLoadMoreComments: () -> Unit = {},
+    onCopyLink: suspend (String) -> Unit = {},
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit = {},
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit = {},
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit = {},
 ) {
     Box(modifier = modifier.fillMaxSize().background(PeekGround), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -102,6 +108,10 @@ fun ViewerView(
                     onRefresh = onRefresh,
                     onLoadMoreComments = onLoadMoreComments,
                     onOpenMedia = onOpenMedia,
+                    onCopyLink = onCopyLink,
+                    onCopyMedia = onCopyMedia,
+                    onDownload = onDownload,
+                    onShare = onShare,
                 )
             }
         }
@@ -116,15 +126,32 @@ private fun ColumnScope.ViewerContent(
     onRefresh: () -> Unit,
     onLoadMoreComments: () -> Unit,
     onOpenMedia: (Int) -> Unit,
+    onCopyLink: suspend (String) -> Unit,
+    onCopyMedia: suspend (ViewerMediaItemUiModel) -> Unit,
+    onDownload: suspend (List<ViewerMediaItemUiModel>) -> Unit,
+    onShare: suspend (List<ViewerMediaItemUiModel>) -> Unit,
 ) {
     ViewerHeader(post.isVideo, onBack, onRefresh)
     val scrollState = rememberScrollState()
+    val items = post.mediaItemsOrPrimary()
+    val pagerState = rememberPagerState(
+        initialPage = post.initialMediaIndex.coerceIn(0, items.lastIndex),
+        pageCount = items::size,
+    )
+    val currentItem = items[pagerState.currentPage]
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(scrollState).padding(horizontal = 14.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        MediaCanvas(post, onOpenMedia)
-        AuthorByline(post)
+        MediaCanvas(post, items, pagerState, onOpenMedia)
+        AuthorByline(
+            post = post,
+            onCopyLink = { onCopyLink(post.sourceUrl) },
+            onCopyMedia = { onCopyMedia(currentItem) },
+            onDownload = { onDownload(items) },
+            onShare = { onShare(items) },
+            canCopyMedia = currentItem.videoUrl == null,
+        )
         CaptionText(post)
         CommentsSection(
             post = post,
@@ -171,21 +198,12 @@ private fun ViewerHeader(isVideo: Boolean, onBack: () -> Unit, onRefresh: () -> 
 }
 
 @Composable
-private fun MediaCanvas(post: ViewerPostUiModel, onOpenMedia: (Int) -> Unit) {
-    val items = post.mediaItems.ifEmpty {
-        listOf(
-            ViewerMediaItemUiModel(
-                id = "primary",
-                image = post.media,
-                contentDescription = post.mediaDescription,
-                videoUrl = post.videoUrl,
-            ),
-        )
-    }
-    val pagerState = rememberPagerState(
-        initialPage = post.initialMediaIndex.coerceIn(0, items.lastIndex),
-        pageCount = items::size,
-    )
+private fun MediaCanvas(
+    post: ViewerPostUiModel,
+    items: List<ViewerMediaItemUiModel>,
+    pagerState: PagerState,
+    onOpenMedia: (Int) -> Unit,
+) {
     val coroutineScope = rememberCoroutineScope()
     val mediaHeight = if (items.any { it.videoUrl != null }) 288.dp else 244.dp
     Box(

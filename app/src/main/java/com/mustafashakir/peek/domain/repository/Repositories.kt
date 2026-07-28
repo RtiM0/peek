@@ -2,7 +2,9 @@ package com.mustafashakir.peek.domain.repository
 
 import com.mustafashakir.peek.domain.model.LinkContent
 import com.mustafashakir.peek.domain.model.LoadProgress
+import com.mustafashakir.peek.domain.model.PreparedMedia
 import com.mustafashakir.peek.domain.model.RecentLink
+import com.mustafashakir.peek.domain.model.RemoteMedia
 import kotlinx.coroutines.flow.Flow
 
 fun interface LoadProgressListener {
@@ -33,4 +35,16 @@ interface LinkContentRepository {
 interface RecentLinksRepository {
     fun observeRecents(): Flow<List<RecentLink>>
     suspend fun markOpened(url: String)
+}
+
+interface MediaRepository {
+    /**
+     * Fetches all requested media into short-lived cache files.
+     *
+     * Implementations must either return every requested item or fail and clean up partial output.
+     */
+    suspend fun prepareForSharing(media: List<RemoteMedia>): Result<List<PreparedMedia>>
+
+    /** Saves each requested item to public downloads and returns the number successfully saved. */
+    suspend fun download(media: List<RemoteMedia>): Int
 }

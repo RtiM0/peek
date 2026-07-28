@@ -59,6 +59,7 @@ object PeekPreviewFixtures {
         videoUrl = if (isVideo) "https://example.com/preview.mp4" else null,
         authorName = "Mara Chen",
         authorMetadata = if (isVideo) "AUTHOR  ·  MAY 24" else "AUTHOR  ·  2H",
+        sourceUrl = "https://www.instagram.com/p/preview-fixture/",
         commentCount = if (isVideo) 12 else 46,
         comments = listOf(
             CommentUiModel(
